@@ -17,6 +17,7 @@ class LifeHubApp extends StatelessWidget {
       title: 'Life Hub',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      themeMode: ThemeMode.light,
       home: _homeForState(firebaseState),
     );
   }
