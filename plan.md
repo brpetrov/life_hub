@@ -340,6 +340,7 @@ Definition of done:
 ### Phase 5, Port setup and onboarding
 
 1. Recreate `LifeHubSetupScreen` as the onboarding and add-more screen.
+
 2. Keep category groups.
 3. Keep select all and deselect all.
 4. Keep custom reminder creation.
