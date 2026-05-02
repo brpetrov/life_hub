@@ -15,13 +15,39 @@ void main() {
     test('groups presets by category', () {
       final grouped = HubPreset.groupedByCategory();
 
-      expect(grouped[HubCategory.car], isNotEmpty);
-      expect(grouped[HubCategory.home], isNotEmpty);
-      expect(grouped[HubCategory.health], isNotEmpty);
-      expect(grouped[HubCategory.tech], isNotEmpty);
-      expect(grouped[HubCategory.pets], isNotEmpty);
-      expect(grouped[HubCategory.documents], isNotEmpty);
-      expect(grouped[HubCategory.seasonal], isNotEmpty);
+      expect(grouped[HubCategory.car], hasLength(7));
+      expect(grouped[HubCategory.home], hasLength(15));
+      expect(grouped[HubCategory.health], hasLength(6));
+      expect(grouped[HubCategory.tech], hasLength(6));
+      expect(grouped[HubCategory.pets], hasLength(5));
+      expect(grouped[HubCategory.documents], hasLength(7));
+      expect(grouped[HubCategory.seasonal], hasLength(4));
+      expect(grouped[HubCategory.custom], isEmpty);
+    });
+
+    test('includes the core preset coverage from the plan', () {
+      final names = HubPreset.all.map((preset) => preset.name).toSet();
+
+      expect(names, contains('MOT'));
+      expect(names, contains('Road Tax'));
+      expect(names, contains('Windscreen Washer Fluid'));
+      expect(names, contains('Energy Tariff Review'));
+      expect(names, contains('Smoke Alarm / CO Detector Check'));
+      expect(names, contains('NHS Prescription Prepayment Certificate'));
+      expect(names, contains('Phone Contract Renewal'));
+      expect(names, contains('Pet Vaccinations / Boosters'));
+      expect(names, contains('Driving Licence Photo Renewal'));
+      expect(names, contains('Pressure Wash Driveway / Patio'));
+      expect(names, contains('Declutter & Charity Shop Run'));
+      expect(names, contains('Washing Machine Clean'));
+      expect(names, contains('Stopcock / Water Shutoff Check'));
+      expect(names, contains('Medication / Repeat Prescription Review'));
+      expect(names, contains('Microchip Details Check'));
+      expect(names, contains('Emergency Contacts & Key Documents'));
+    });
+
+    test('keeps a focused preset list', () {
+      expect(HubPreset.all, hasLength(50));
     });
 
     test('converts a preset into a hub item', () {

@@ -8,7 +8,7 @@ class AppTheme {
   static const _background = Color(0xFFF2F6FC);
   static const _surface = Color(0xFFF7F9FD);
   static const _surfaceContainer = Color(0xFFEAF0F8);
-  static const _surfaceContainerLow = Color(0xFFFFFFFF);
+  static const _surfaceContainerLow = Color(0xFFF5F8FC);
   static const _outline = Color(0xFFC5D0E0);
 
   static ThemeData get light {
@@ -42,9 +42,10 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 1,
         color: _surfaceContainerLow,
         surfaceTintColor: Colors.transparent,
+        shadowColor: const Color(0x1A18324A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -62,13 +63,13 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
