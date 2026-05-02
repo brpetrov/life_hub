@@ -81,6 +81,77 @@ void main() {
     expect(find.text('Next due'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
   });
+
+  testWidgets('edits a reminder from the details sheet', (tester) async {
+    final repository = _FakeHubItemRepository(Stream.value(_items));
+    await tester.pumpDashboard(repository: repository);
+    await tester.pump();
+
+    await tester.tap(find.text('MOT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit reminder'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Name'),
+      'MOT renewal',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedItems, hasLength(1));
+    expect(repository.updatedItems.single.name, 'MOT renewal');
+  });
+
+  testWidgets('sets a due date from the details sheet', (tester) async {
+    final repository = _FakeHubItemRepository(Stream.value(_items));
+    await tester.pumpDashboard(repository: repository);
+    await tester.pump();
+
+    await tester.tap(find.text('MOT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Due date'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'OK'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedItems, hasLength(1));
+    expect(repository.updatedItems.single.nextDueDate, DateTime(2026, 5, 10));
+  });
+
+  testWidgets('marks a reminder done from the details sheet', (tester) async {
+    final repository = _FakeHubItemRepository(Stream.value(_items));
+    await tester.pumpDashboard(repository: repository);
+    await tester.pump();
+
+    await tester.tap(find.text('MOT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark done'));
+    await tester.pumpAndSettle();
+
+    expect(repository.markedDoneItems, hasLength(1));
+    expect(repository.markedDoneItems.single.id, 'mot');
+  });
+
+  testWidgets('deletes a reminder after confirmation', (tester) async {
+    final repository = _FakeHubItemRepository(Stream.value(_items));
+    await tester.pumpDashboard(repository: repository);
+    await tester.pump();
+
+    await tester.tap(find.text('MOT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete reminder?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedIds, ['mot']);
+  });
 }
 
 extension on WidgetTester {
@@ -99,9 +170,12 @@ extension on WidgetTester {
 }
 
 class _FakeHubItemRepository implements HubItemRepository {
-  const _FakeHubItemRepository(this._items);
+  _FakeHubItemRepository(this._items);
 
   final Stream<List<HubItem>> _items;
+  final List<HubItem> updatedItems = [];
+  final List<HubItem> markedDoneItems = [];
+  final List<String> deletedIds = [];
 
   @override
   Stream<List<HubItem>> watchItems() => _items;
@@ -113,13 +187,19 @@ class _FakeHubItemRepository implements HubItemRepository {
   Future<void> createItems(List<HubItem> items) => throw UnimplementedError();
 
   @override
-  Future<void> deleteItem(String id) => throw UnimplementedError();
+  Future<void> deleteItem(String id) async {
+    deletedIds.add(id);
+  }
 
   @override
-  Future<void> markDone(HubItem item) => throw UnimplementedError();
+  Future<void> markDone(HubItem item) async {
+    markedDoneItems.add(item);
+  }
 
   @override
-  Future<void> updateItem(HubItem item) => throw UnimplementedError();
+  Future<void> updateItem(HubItem item) async {
+    updatedItems.add(item);
+  }
 }
 
 final _items = [

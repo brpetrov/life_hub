@@ -4,17 +4,53 @@ import '../domain/hub_item.dart';
 import 'hub_date_format.dart';
 
 class HubItemDetailsSheet extends StatelessWidget {
-  const HubItemDetailsSheet({required this.item, super.key});
+  const HubItemDetailsSheet({
+    required this.item,
+    required this.onEdit,
+    required this.onSetDueDate,
+    required this.onMarkDone,
+    required this.onDelete,
+    super.key,
+  });
 
   final HubItem item;
+  final VoidCallback onEdit;
+  final VoidCallback onSetDueDate;
+  final VoidCallback onMarkDone;
+  final VoidCallback onDelete;
 
-  static Future<void> show(BuildContext context, {required HubItem item}) {
+  static Future<void> show(
+    BuildContext context, {
+    required HubItem item,
+    required VoidCallback onEdit,
+    required VoidCallback onSetDueDate,
+    required VoidCallback onMarkDone,
+    required VoidCallback onDelete,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (context) {
-        return HubItemDetailsSheet(item: item);
+      builder: (sheetContext) {
+        return HubItemDetailsSheet(
+          item: item,
+          onEdit: () {
+            Navigator.of(sheetContext).pop();
+            onEdit();
+          },
+          onSetDueDate: () {
+            Navigator.of(sheetContext).pop();
+            onSetDueDate();
+          },
+          onMarkDone: () {
+            Navigator.of(sheetContext).pop();
+            onMarkDone();
+          },
+          onDelete: () {
+            Navigator.of(sheetContext).pop();
+            onDelete();
+          },
+        );
       },
     );
   }
@@ -61,12 +97,36 @@ class HubItemDetailsSheet extends StatelessWidget {
               value: _formatOptionalDate(item.lastDoneDate),
             ),
             const SizedBox(height: 20),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Close'),
-              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                FilledButton.icon(
+                  onPressed: onMarkDone,
+                  icon: const Icon(Icons.check),
+                  label: const Text('Mark done'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onSetDueDate,
+                  icon: const Icon(Icons.event_outlined),
+                  label: const Text('Due date'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit'),
+                ),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
             ),
           ],
         ),

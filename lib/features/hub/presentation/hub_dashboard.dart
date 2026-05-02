@@ -4,8 +4,10 @@ import '../data/hub_item_repository.dart';
 import '../domain/hub_category.dart';
 import '../domain/hub_item.dart';
 import 'hub_category_filter_bar.dart';
+import 'hub_date_format.dart';
 import 'hub_item_card.dart';
 import 'hub_item_details_sheet.dart';
+import 'hub_item_form_dialog.dart';
 import 'hub_status_bar.dart';
 
 class HubDashboard extends StatefulWidget {
@@ -59,7 +61,22 @@ class _HubDashboardState extends State<HubDashboard> {
   }
 
   void _showDetails(HubItem item) {
-    HubItemDetailsSheet.show(context, item: item);
+    HubItemDetailsSheet.show(
+      context,
+      item: item,
+      onEdit: () {
+        _editItem(item);
+      },
+      onSetDueDate: () {
+        _setDueDate(item);
+      },
+      onMarkDone: () {
+        _markDone(item);
+      },
+      onDelete: () {
+        _deleteItem(item);
+      },
+    );
   }
 
   void _handleAddReminders() {
@@ -73,6 +90,108 @@ class _HubDashboardState extends State<HubDashboard> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Reminder setup is coming next.')),
     );
+  }
+
+  Future<void> _editItem(HubItem item) async {
+    final updatedItem = await HubItemFormDialog.show(context, item: item);
+
+    if (updatedItem == null || !mounted) {
+      return;
+    }
+
+    await _runRepositoryAction(
+      () => widget.repository.updateItem(updatedItem),
+      successMessage: 'Reminder updated',
+      errorMessage: 'Could not update reminder',
+    );
+  }
+
+  Future<void> _setDueDate(HubItem item) async {
+    final initialDate = item.nextDueDate ?? DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(DateTime.now().year + 25),
+    );
+
+    if (pickedDate == null || !mounted) {
+      return;
+    }
+
+    await _runRepositoryAction(
+      () =>
+          widget.repository.updateItem(item.copyWith(nextDueDate: pickedDate)),
+      successMessage: 'Due date set for ${HubDateFormat.short(pickedDate)}',
+      errorMessage: 'Could not set due date',
+    );
+  }
+
+  Future<void> _markDone(HubItem item) async {
+    await _runRepositoryAction(
+      () => widget.repository.markDone(item),
+      successMessage: 'Marked done',
+      errorMessage: 'Could not mark reminder done',
+    );
+  }
+
+  Future<void> _deleteItem(HubItem item) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete reminder?'),
+          content: Text('Delete "${item.name}" from your hub?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+
+    await _runRepositoryAction(
+      () => widget.repository.deleteItem(item.id),
+      successMessage: 'Reminder deleted',
+      errorMessage: 'Could not delete reminder',
+    );
+  }
+
+  Future<void> _runRepositoryAction(
+    Future<void> Function() action, {
+    required String successMessage,
+    required String errorMessage,
+  }) async {
+    try {
+      await action();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(successMessage)));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$errorMessage: $error')));
+    }
   }
 
   @override
