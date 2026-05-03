@@ -79,6 +79,7 @@ void main() {
     expect(find.text('Status'), findsOneWidget);
     expect(find.text('Frequency'), findsOneWidget);
     expect(find.text('Next due'), findsOneWidget);
+    expect(find.text('Alerts'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
   });
 
@@ -133,6 +134,23 @@ void main() {
 
     expect(repository.markedDoneItems, hasLength(1));
     expect(repository.markedDoneItems.single.id, 'mot');
+  });
+
+  testWidgets('mutes reminder notifications from the details sheet', (
+    tester,
+  ) async {
+    final repository = _FakeHubItemRepository(Stream.value(_items));
+    await tester.pumpDashboard(repository: repository);
+    await tester.pump();
+
+    await tester.tap(find.text('MOT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mute'));
+    await tester.pumpAndSettle();
+
+    expect(repository.updatedItems, hasLength(1));
+    expect(repository.updatedItems.single.id, 'mot');
+    expect(repository.updatedItems.single.notificationsMuted, isTrue);
   });
 
   testWidgets('deletes a reminder after confirmation', (tester) async {

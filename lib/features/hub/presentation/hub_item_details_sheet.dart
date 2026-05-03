@@ -9,6 +9,7 @@ class HubItemDetailsSheet extends StatelessWidget {
     required this.onEdit,
     required this.onSetDueDate,
     required this.onMarkDone,
+    required this.onToggleNotificationsMuted,
     required this.onDelete,
     super.key,
   });
@@ -17,6 +18,7 @@ class HubItemDetailsSheet extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onSetDueDate;
   final VoidCallback onMarkDone;
+  final VoidCallback onToggleNotificationsMuted;
   final VoidCallback onDelete;
 
   static Future<void> show(
@@ -25,6 +27,7 @@ class HubItemDetailsSheet extends StatelessWidget {
     required VoidCallback onEdit,
     required VoidCallback onSetDueDate,
     required VoidCallback onMarkDone,
+    required VoidCallback onToggleNotificationsMuted,
     required VoidCallback onDelete,
   }) {
     return showModalBottomSheet<void>(
@@ -45,6 +48,10 @@ class HubItemDetailsSheet extends StatelessWidget {
           onMarkDone: () {
             Navigator.of(sheetContext).pop();
             onMarkDone();
+          },
+          onToggleNotificationsMuted: () {
+            Navigator.of(sheetContext).pop();
+            onToggleNotificationsMuted();
           },
           onDelete: () {
             Navigator.of(sheetContext).pop();
@@ -96,6 +103,10 @@ class HubItemDetailsSheet extends StatelessWidget {
               label: 'Last done',
               value: _formatOptionalDate(item.lastDoneDate),
             ),
+            _DetailRow(
+              label: 'Alerts',
+              value: item.notificationsMuted ? 'Muted' : 'Enabled',
+            ),
             const SizedBox(height: 20),
             Wrap(
               spacing: 8,
@@ -116,6 +127,15 @@ class HubItemDetailsSheet extends StatelessWidget {
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Edit'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onToggleNotificationsMuted,
+                  icon: Icon(
+                    item.notificationsMuted
+                        ? Icons.notifications_active_outlined
+                        : Icons.notifications_off_outlined,
+                  ),
+                  label: Text(item.notificationsMuted ? 'Unmute' : 'Mute'),
                 ),
                 TextButton.icon(
                   onPressed: onDelete,

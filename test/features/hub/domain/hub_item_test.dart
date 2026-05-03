@@ -17,6 +17,7 @@ void main() {
         'nextDueDate': Timestamp.fromDate(DateTime(2026, 5, 2)),
         'source': 'preset',
         'presetId': 'home-boiler-service',
+        'notificationsMuted': true,
         'archived': false,
         'createdAt': Timestamp.fromDate(DateTime(2026, 1, 1)),
         'updatedAt': Timestamp.fromDate(DateTime(2026, 1, 2)),
@@ -27,6 +28,7 @@ void main() {
       expect(item.frequency.months, 12);
       expect(item.source, HubItemSource.preset);
       expect(item.presetId, 'home-boiler-service');
+      expect(item.notificationsMuted, isTrue);
       expect(item.lastDoneDate, DateTime(2025, 5, 2, 9));
       expect(item.nextDueDate, DateTime(2026, 5, 2));
     });
@@ -51,6 +53,7 @@ void main() {
       expect(data['description'], 'Book appointment');
       expect(data['category'], 'health');
       expect(data['frequencyMonths'], 6);
+      expect(data['notificationsMuted'], isFalse);
       expect(data['lastDoneDate'], isA<Timestamp>());
       expect(data['nextDueDate'], isA<Timestamp>());
       expect(data['createdAt'], isA<Timestamp>());

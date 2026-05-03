@@ -6,6 +6,7 @@ import 'package:life_hub/features/hub/data/hub_item_repository.dart';
 import 'package:life_hub/features/hub/domain/frequency.dart';
 import 'package:life_hub/features/hub/domain/hub_category.dart';
 import 'package:life_hub/features/hub/domain/hub_item.dart';
+import 'package:life_hub/features/notifications/data/reminder_notification_scheduler.dart';
 import 'package:life_hub/features/settings/data/app_settings_repository.dart';
 import 'package:life_hub/features/settings/domain/app_settings.dart';
 import 'package:life_hub/features/settings/presentation/settings_screen.dart';
@@ -26,11 +27,35 @@ void main() {
     expect(settingsRepository.updatedThemeModes, [AppThemePreference.dark]);
   });
 
+  testWidgets('enables reminder notifications after permission is granted', (
+    tester,
+  ) async {
+    final settingsRepository = _FakeAppSettingsRepository();
+    final scheduler = _FakeReminderNotificationScheduler();
+
+    await tester.pumpSettingsScreen(
+      settingsRepository: settingsRepository,
+      notificationScheduler: scheduler,
+    );
+
+    await tester.tap(find.byType(Switch).first);
+    await tester.pumpAndSettle();
+
+    expect(scheduler.permissionRequestCount, 1);
+    expect(settingsRepository.updatedNotificationPreferences, hasLength(1));
+    expect(
+      settingsRepository.updatedNotificationPreferences.single.enabled,
+      isTrue,
+    );
+  });
+
   testWidgets('exports active reminders as JSON', (tester) async {
     await tester.pumpSettingsScreen(
       itemRepository: _FakeHubItemRepository(items: [_item]),
     );
 
+    await tester.ensureVisible(find.text('Export reminders'));
+    await tester.pump();
     await tester.tap(find.text('Export reminders'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
@@ -71,6 +96,7 @@ extension on WidgetTester {
   Future<void> pumpSettingsScreen({
     AppSettingsRepository? settingsRepository,
     HubItemRepository? itemRepository,
+    ReminderNotificationScheduler? notificationScheduler,
     Future<void> Function(String password)? onDeleteAccount,
   }) {
     return pumpWidget(
@@ -78,12 +104,12 @@ extension on WidgetTester {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         home: SettingsScreen(
-          settings: AppSettings.defaults().copyWithForTest(
-            onboardingComplete: true,
-          ),
+          settings: AppSettings.defaults().copyWith(onboardingComplete: true),
           settingsRepository:
               settingsRepository ?? _FakeAppSettingsRepository(),
           itemRepository: itemRepository ?? _FakeHubItemRepository(),
+          notificationScheduler:
+              notificationScheduler ?? _FakeReminderNotificationScheduler(),
           signedInEmail: 'test@example.com',
           displayName: 'Test User',
           onDeleteAccount: onDeleteAccount ?? (_) async {},
@@ -93,24 +119,9 @@ extension on WidgetTester {
   }
 }
 
-extension on AppSettings {
-  AppSettings copyWithForTest({
-    bool? onboardingComplete,
-    AppThemePreference? themeMode,
-    bool? notificationsEnabled,
-  }) {
-    return AppSettings(
-      onboardingComplete: onboardingComplete ?? this.onboardingComplete,
-      themeMode: themeMode ?? this.themeMode,
-      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-    );
-  }
-}
-
 class _FakeAppSettingsRepository implements AppSettingsRepository {
   final List<AppThemePreference> updatedThemeModes = [];
+  final List<_NotificationPreferences> updatedNotificationPreferences = [];
   var completeOnboardingCalls = 0;
   var deleteSettingsCalls = 0;
 
@@ -128,8 +139,67 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
   }
 
   @override
+  Future<void> updateNotificationPreferences({
+    required bool notificationsEnabled,
+    required int notificationHour,
+    required int notificationDueSoonDays,
+    required int quietHoursStartHour,
+    required int quietHoursEndHour,
+  }) async {
+    updatedNotificationPreferences.add(
+      _NotificationPreferences(
+        enabled: notificationsEnabled,
+        hour: notificationHour,
+        dueSoonDays: notificationDueSoonDays,
+        quietStart: quietHoursStartHour,
+        quietEnd: quietHoursEndHour,
+      ),
+    );
+  }
+
+  @override
   Future<void> deleteSettings() async {
     deleteSettingsCalls++;
+  }
+}
+
+class _NotificationPreferences {
+  const _NotificationPreferences({
+    required this.enabled,
+    required this.hour,
+    required this.dueSoonDays,
+    required this.quietStart,
+    required this.quietEnd,
+  });
+
+  final bool enabled;
+  final int hour;
+  final int dueSoonDays;
+  final int quietStart;
+  final int quietEnd;
+}
+
+class _FakeReminderNotificationScheduler
+    implements ReminderNotificationScheduler {
+  var permissionRequestCount = 0;
+  var cancelDailySummaryCount = 0;
+  var permissionGranted = true;
+
+  @override
+  Future<bool> requestPermissions() async {
+    permissionRequestCount++;
+    return permissionGranted;
+  }
+
+  @override
+  Future<void> syncDailySummary({
+    required AppSettings settings,
+    required List<HubItem> items,
+  }) async {}
+
+  @override
+  Future<void> cancelDailySummary() async {
+    cancelDailySummaryCount++;
   }
 }
 

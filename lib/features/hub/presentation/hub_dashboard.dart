@@ -75,6 +75,9 @@ class _HubDashboardState extends State<HubDashboard> {
       onMarkDone: () {
         _markDone(item);
       },
+      onToggleNotificationsMuted: () {
+        _toggleNotificationsMuted(item);
+      },
       onDelete: () {
         _deleteItem(item);
       },
@@ -134,6 +137,20 @@ class _HubDashboardState extends State<HubDashboard> {
       () => widget.repository.markDone(item),
       successMessage: 'Marked done',
       errorMessage: 'Could not mark reminder done',
+    );
+  }
+
+  Future<void> _toggleNotificationsMuted(HubItem item) async {
+    final updatedItem = item.copyWith(
+      notificationsMuted: !item.notificationsMuted,
+    );
+
+    await _runRepositoryAction(
+      () => widget.repository.updateItem(updatedItem),
+      successMessage: updatedItem.notificationsMuted
+          ? 'Reminder notifications muted'
+          : 'Reminder notifications enabled',
+      errorMessage: 'Could not update reminder notifications',
     );
   }
 

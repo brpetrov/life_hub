@@ -7,19 +7,25 @@ import '../../settings/data/firestore_app_settings_repository.dart';
 import '../../settings/domain/app_settings.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../data/firestore_hub_item_repository.dart';
+import '../../notifications/data/local_reminder_notification_scheduler.dart';
+import '../../notifications/data/reminder_notification_scheduler.dart';
+import '../../notifications/presentation/reminder_notification_sync.dart';
 import 'hub_dashboard.dart';
 import 'hub_setup_screen.dart';
 
 class HubScreen extends StatelessWidget {
-  const HubScreen({
+  HubScreen({
     required this.authService,
     required this.user,
+    ReminderNotificationScheduler? notificationScheduler,
     this.onThemeModeChanged,
     super.key,
-  });
+  }) : notificationScheduler =
+           notificationScheduler ?? LocalReminderNotificationScheduler();
 
   final AuthService authService;
   final User user;
+  final ReminderNotificationScheduler notificationScheduler;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
 
   @override
@@ -30,12 +36,17 @@ class HubScreen extends StatelessWidget {
     return _HubHome(
       itemRepository: itemRepository,
       settingsRepository: settingsRepository,
+      notificationScheduler: notificationScheduler,
       signedInEmail: user.email,
       displayName: user.displayName,
-      onSignOut: authService.signOut,
+      onSignOut: () {
+        notificationScheduler.cancelDailySummary();
+        authService.signOut();
+      },
       onThemeModeChanged: onThemeModeChanged,
       onDeleteAccount: (password) async {
         await authService.reauthenticateWithPassword(password);
+        await notificationScheduler.cancelDailySummary();
         await itemRepository.deleteAllItems();
         await settingsRepository.deleteSettings();
         await authService.deleteCurrentUser();
@@ -48,6 +59,7 @@ class _HubHome extends StatelessWidget {
   const _HubHome({
     required this.itemRepository,
     required this.settingsRepository,
+    required this.notificationScheduler,
     required this.onSignOut,
     required this.onDeleteAccount,
     this.onThemeModeChanged,
@@ -57,6 +69,7 @@ class _HubHome extends StatelessWidget {
 
   final FirestoreHubItemRepository itemRepository;
   final FirestoreAppSettingsRepository settingsRepository;
+  final ReminderNotificationScheduler notificationScheduler;
   final VoidCallback onSignOut;
   final Future<void> Function(String password) onDeleteAccount;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
@@ -100,39 +113,45 @@ class _HubHome extends StatelessWidget {
         return _ThemeModeSync(
           themeMode: settings.themeMode.materialThemeMode,
           onThemeModeChanged: onThemeModeChanged,
-          child: HubDashboard(
-            repository: itemRepository,
-            signedInEmail: signedInEmail,
-            onSignOut: onSignOut,
-            onOpenSettings: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) {
-                    return SettingsScreen(
-                      settings: settings,
-                      settingsRepository: settingsRepository,
-                      itemRepository: itemRepository,
-                      signedInEmail: signedInEmail,
-                      displayName: displayName,
-                      onDeleteAccount: onDeleteAccount,
-                    );
-                  },
-                ),
-              );
-            },
-            onAddReminders: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) {
-                    return HubSetupScreen(
-                      repository: itemRepository,
-                      settingsRepository: settingsRepository,
-                      isOnboarding: false,
-                    );
-                  },
-                ),
-              );
-            },
+          child: ReminderNotificationSync(
+            settings: settings,
+            itemRepository: itemRepository,
+            scheduler: notificationScheduler,
+            child: HubDashboard(
+              repository: itemRepository,
+              signedInEmail: signedInEmail,
+              onSignOut: onSignOut,
+              onOpenSettings: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) {
+                      return SettingsScreen(
+                        settings: settings,
+                        settingsRepository: settingsRepository,
+                        itemRepository: itemRepository,
+                        notificationScheduler: notificationScheduler,
+                        signedInEmail: signedInEmail,
+                        displayName: displayName,
+                        onDeleteAccount: onDeleteAccount,
+                      );
+                    },
+                  ),
+                );
+              },
+              onAddReminders: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) {
+                      return HubSetupScreen(
+                        repository: itemRepository,
+                        settingsRepository: settingsRepository,
+                        isOnboarding: false,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         );
       },

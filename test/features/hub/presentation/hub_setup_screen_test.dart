@@ -150,5 +150,14 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
   Future<void> updateThemeMode(AppThemePreference themeMode) async {}
 
   @override
+  Future<void> updateNotificationPreferences({
+    required bool notificationsEnabled,
+    required int notificationHour,
+    required int notificationDueSoonDays,
+    required int quietHoursStartHour,
+    required int quietHoursEndHour,
+  }) async {}
+
+  @override
   Future<void> deleteSettings() async {}
 }

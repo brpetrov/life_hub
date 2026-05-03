@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../hub/data/hub_item_repository.dart';
 import '../../hub/domain/hub_item.dart';
+import '../../notifications/data/reminder_notification_scheduler.dart';
 import '../data/app_settings_repository.dart';
 import '../domain/app_settings.dart';
 
@@ -13,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
     required this.settings,
     required this.settingsRepository,
     required this.itemRepository,
+    required this.notificationScheduler,
     required this.onDeleteAccount,
     this.signedInEmail,
     this.displayName,
@@ -22,6 +24,7 @@ class SettingsScreen extends StatefulWidget {
   final AppSettings settings;
   final AppSettingsRepository settingsRepository;
   final HubItemRepository itemRepository;
+  final ReminderNotificationScheduler notificationScheduler;
   final Future<void> Function(String password) onDeleteAccount;
   final String? signedInEmail;
   final String? displayName;
@@ -32,14 +35,25 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   var _isUpdatingTheme = false;
+  var _isUpdatingNotifications = false;
   var _isExporting = false;
   var _isDeleting = false;
   late AppThemePreference _themeMode;
+  late bool _notificationsEnabled;
+  late int _notificationHour;
+  late int _notificationDueSoonDays;
+  late int _quietHoursStartHour;
+  late int _quietHoursEndHour;
 
   @override
   void initState() {
     super.initState();
     _themeMode = widget.settings.themeMode;
+    _notificationsEnabled = widget.settings.notificationsEnabled;
+    _notificationHour = widget.settings.notificationHour;
+    _notificationDueSoonDays = widget.settings.notificationDueSoonDays;
+    _quietHoursStartHour = widget.settings.quietHoursStartHour;
+    _quietHoursEndHour = widget.settings.quietHoursEndHour;
   }
 
   @override
@@ -48,6 +62,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (oldWidget.settings.themeMode != widget.settings.themeMode) {
       _themeMode = widget.settings.themeMode;
+    }
+
+    if (oldWidget.settings != widget.settings) {
+      _notificationsEnabled = widget.settings.notificationsEnabled;
+      _notificationHour = widget.settings.notificationHour;
+      _notificationDueSoonDays = widget.settings.notificationDueSoonDays;
+      _quietHoursStartHour = widget.settings.quietHoursStartHour;
+      _quietHoursEndHour = widget.settings.quietHoursEndHour;
     }
   }
 
@@ -80,6 +102,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         setState(() {
           _isUpdatingTheme = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _updateNotificationPreferences({
+    bool? notificationsEnabled,
+    int? notificationHour,
+    int? notificationDueSoonDays,
+    int? quietHoursStartHour,
+    int? quietHoursEndHour,
+  }) async {
+    if (_isUpdatingNotifications) {
+      return;
+    }
+
+    final nextNotificationsEnabled =
+        notificationsEnabled ?? _notificationsEnabled;
+    final nextNotificationHour = notificationHour ?? _notificationHour;
+    final nextNotificationDueSoonDays =
+        notificationDueSoonDays ?? _notificationDueSoonDays;
+    final nextQuietHoursStartHour = quietHoursStartHour ?? _quietHoursStartHour;
+    final nextQuietHoursEndHour = quietHoursEndHour ?? _quietHoursEndHour;
+
+    setState(() {
+      _isUpdatingNotifications = true;
+    });
+
+    try {
+      if (nextNotificationsEnabled && !_notificationsEnabled) {
+        final permissionGranted = await widget.notificationScheduler
+            .requestPermissions();
+
+        if (!permissionGranted) {
+          _showError('Notification permission was not granted.');
+          return;
+        }
+      }
+
+      await widget.settingsRepository.updateNotificationPreferences(
+        notificationsEnabled: nextNotificationsEnabled,
+        notificationHour: nextNotificationHour,
+        notificationDueSoonDays: nextNotificationDueSoonDays,
+        quietHoursStartHour: nextQuietHoursStartHour,
+        quietHoursEndHour: nextQuietHoursEndHour,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notificationsEnabled = nextNotificationsEnabled;
+        _notificationHour = nextNotificationHour;
+        _notificationDueSoonDays = nextNotificationDueSoonDays;
+        _quietHoursStartHour = nextQuietHoursStartHour;
+        _quietHoursEndHour = nextQuietHoursEndHour;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notification settings saved')),
+      );
+    } catch (error) {
+      _showError('Could not update notifications: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingNotifications = false;
         });
       }
     }
@@ -181,6 +271,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'nextDueDate': item.nextDueDate?.toIso8601String(),
       'source': item.source.value,
       'presetId': item.presetId,
+      'notificationsMuted': item.notificationsMuted,
       'createdAt': item.createdAt?.toIso8601String(),
       'updatedAt': item.updatedAt?.toIso8601String(),
     };
@@ -248,6 +339,128 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     _SettingsSection(
+                      title: 'Notifications',
+                      icon: Icons.notifications_outlined,
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Reminder notifications'),
+                          subtitle: const Text(
+                            'Daily summary for overdue, due today, and due soon reminders.',
+                          ),
+                          value: _notificationsEnabled,
+                          onChanged: _isUpdatingNotifications
+                              ? null
+                              : (enabled) {
+                                  _updateNotificationPreferences(
+                                    notificationsEnabled: enabled,
+                                  );
+                                },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          initialValue: _notificationHour,
+                          decoration: const InputDecoration(
+                            labelText: 'Daily summary time',
+                            prefixIcon: Icon(Icons.schedule_outlined),
+                          ),
+                          items: [
+                            for (var hour = 0; hour < 24; hour++)
+                              DropdownMenuItem(
+                                value: hour,
+                                child: Text(_timeLabel(hour)),
+                              ),
+                          ],
+                          onChanged: _isUpdatingNotifications
+                              ? null
+                              : (hour) {
+                                  if (hour == null) {
+                                    return;
+                                  }
+
+                                  _updateNotificationPreferences(
+                                    notificationHour: hour,
+                                  );
+                                },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<int>(
+                          initialValue: _notificationDueSoonDays,
+                          decoration: const InputDecoration(
+                            labelText: 'Due soon window',
+                            prefixIcon: Icon(Icons.event_available_outlined),
+                          ),
+                          items: [
+                            for (var days = 1; days <= 30; days++)
+                              DropdownMenuItem(
+                                value: days,
+                                child: Text(days == 1 ? '1 day' : '$days days'),
+                              ),
+                          ],
+                          onChanged: _isUpdatingNotifications
+                              ? null
+                              : (days) {
+                                  if (days == null) {
+                                    return;
+                                  }
+
+                                  _updateNotificationPreferences(
+                                    notificationDueSoonDays: days,
+                                  );
+                                },
+                        ),
+                        const SizedBox(height: 12),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final useWideLayout = constraints.maxWidth >= 520;
+                            final quietStartField = _QuietHoursDropdown(
+                              label: 'Quiet start',
+                              value: _quietHoursStartHour,
+                              enabled: !_isUpdatingNotifications,
+                              onChanged: (hour) {
+                                _updateNotificationPreferences(
+                                  quietHoursStartHour: hour,
+                                );
+                              },
+                            );
+                            final quietEndField = _QuietHoursDropdown(
+                              label: 'Quiet end',
+                              value: _quietHoursEndHour,
+                              enabled: !_isUpdatingNotifications,
+                              onChanged: (hour) {
+                                _updateNotificationPreferences(
+                                  quietHoursEndHour: hour,
+                                );
+                              },
+                            );
+
+                            if (useWideLayout) {
+                              return Row(
+                                children: [
+                                  Expanded(child: quietStartField),
+                                  const SizedBox(width: 12),
+                                  Expanded(child: quietEndField),
+                                ],
+                              );
+                            }
+
+                            return Column(
+                              children: [
+                                quietStartField,
+                                const SizedBox(height: 12),
+                                quietEndField,
+                              ],
+                            );
+                          },
+                        ),
+                        if (_isUpdatingNotifications) ...[
+                          const SizedBox(height: 12),
+                          const LinearProgressIndicator(),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _SettingsSection(
                       title: 'Data',
                       icon: Icons.file_download_outlined,
                       children: [
@@ -302,6 +515,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
       AppThemePreference.light => Icons.light_mode_outlined,
       AppThemePreference.dark => Icons.dark_mode_outlined,
     };
+  }
+
+  static String _timeLabel(int hour) {
+    return '${hour.toString().padLeft(2, '0')}:00';
+  }
+}
+
+class _QuietHoursDropdown extends StatelessWidget {
+  const _QuietHoursDropdown({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<int>(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: const Icon(Icons.do_not_disturb_on_outlined),
+      ),
+      items: [
+        for (var hour = 0; hour < 24; hour++)
+          DropdownMenuItem(
+            value: hour,
+            child: Text(_SettingsScreenState._timeLabel(hour)),
+          ),
+      ],
+      onChanged: enabled
+          ? (hour) {
+              if (hour == null) {
+                return;
+              }
+
+              onChanged(hour);
+            }
+          : null,
+    );
   }
 }
 

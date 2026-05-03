@@ -31,6 +31,7 @@ class HubItem {
     this.lastDoneDate,
     this.nextDueDate,
     this.presetId,
+    this.notificationsMuted = false,
     this.archived = false,
     this.createdAt,
     this.updatedAt,
@@ -47,6 +48,7 @@ class HubItem {
       nextDueDate: _dateFromFirestore(data['nextDueDate']),
       source: HubItemSource.fromValue(data['source']),
       presetId: _nullableStringValue(data['presetId']),
+      notificationsMuted: data['notificationsMuted'] == true,
       archived: data['archived'] == true,
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
@@ -62,6 +64,7 @@ class HubItem {
   final DateTime? nextDueDate;
   final HubItemSource source;
   final String? presetId;
+  final bool notificationsMuted;
   final bool archived;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -89,6 +92,7 @@ class HubItem {
     DateTime? nextDueDate,
     HubItemSource? source,
     String? presetId,
+    bool? notificationsMuted,
     bool? archived,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -110,6 +114,7 @@ class HubItem {
       nextDueDate: clearNextDueDate ? null : nextDueDate ?? this.nextDueDate,
       source: source ?? this.source,
       presetId: clearPresetId ? null : presetId ?? this.presetId,
+      notificationsMuted: notificationsMuted ?? this.notificationsMuted,
       archived: archived ?? this.archived,
       createdAt: clearCreatedAt ? null : createdAt ?? this.createdAt,
       updatedAt: clearUpdatedAt ? null : updatedAt ?? this.updatedAt,
@@ -126,6 +131,7 @@ class HubItem {
       'nextDueDate': _timestampFromDate(nextDueDate),
       'source': source.value,
       'presetId': presetId,
+      'notificationsMuted': notificationsMuted,
       'archived': archived,
       'createdAt': _timestampFromDate(createdAt),
       'updatedAt': _timestampFromDate(updatedAt),

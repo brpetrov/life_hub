@@ -61,6 +61,11 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
         data['createdAt'] = FieldValue.serverTimestamp();
         data['themeMode'] = AppThemePreference.system.value;
         data['notificationsEnabled'] = false;
+        data['notificationHour'] = AppSettings.defaultNotificationHour;
+        data['notificationDueSoonDays'] =
+            AppSettings.defaultNotificationDueSoonDays;
+        data['quietHoursStartHour'] = AppSettings.defaultQuietHoursStartHour;
+        data['quietHoursEndHour'] = AppSettings.defaultQuietHoursEndHour;
       }
 
       transaction.set(_document, data, SetOptions(merge: true));
@@ -71,6 +76,24 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
   Future<void> updateThemeMode(AppThemePreference themeMode) async {
     await _document.set({
       'themeMode': themeMode.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> updateNotificationPreferences({
+    required bool notificationsEnabled,
+    required int notificationHour,
+    required int notificationDueSoonDays,
+    required int quietHoursStartHour,
+    required int quietHoursEndHour,
+  }) async {
+    await _document.set({
+      'notificationsEnabled': notificationsEnabled,
+      'notificationHour': notificationHour,
+      'notificationDueSoonDays': notificationDueSoonDays,
+      'quietHoursStartHour': quietHoursStartHour,
+      'quietHoursEndHour': quietHoursEndHour,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
