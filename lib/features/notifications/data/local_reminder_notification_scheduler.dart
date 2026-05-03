@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as timezone_data;
 import 'package:timezone/timezone.dart' as timezone;
 
@@ -140,7 +139,7 @@ class LocalReminderNotificationScheduler
     }
 
     timezone_data.initializeTimeZones();
-    await _configureLocalTimezone();
+    _configureLocalTimezone();
 
     await _plugin.initialize(
       settings: const InitializationSettings(
@@ -167,10 +166,9 @@ class LocalReminderNotificationScheduler
     _initialized = true;
   }
 
-  Future<void> _configureLocalTimezone() async {
+  void _configureLocalTimezone() {
     try {
-      final localTimezone = await FlutterTimezone.getLocalTimezone();
-      timezone.setLocalLocation(timezone.getLocation(localTimezone.identifier));
+      timezone.setLocalLocation(timezone.getLocation('Europe/London'));
     } catch (_) {
       timezone.setLocalLocation(timezone.UTC);
     }
@@ -258,9 +256,10 @@ class LocalReminderNotificationScheduler
     return switch (defaultTargetPlatform) {
       TargetPlatform.android ||
       TargetPlatform.iOS ||
-      TargetPlatform.macOS ||
-      TargetPlatform.windows => true,
-      TargetPlatform.fuchsia || TargetPlatform.linux => false,
+      TargetPlatform.macOS => true,
+      TargetPlatform.fuchsia ||
+      TargetPlatform.linux ||
+      TargetPlatform.windows => false,
     };
   }
 }

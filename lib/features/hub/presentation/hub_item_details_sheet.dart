@@ -138,6 +138,9 @@ class HubItemDetailsSheet extends StatelessWidget {
                   label: Text(item.notificationsMuted ? 'Unmute' : 'Mute'),
                 ),
                 TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
                   onPressed: onDelete,
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Delete'),

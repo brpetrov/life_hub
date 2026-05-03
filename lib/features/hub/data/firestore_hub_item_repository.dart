@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../domain/hub_item.dart';
 import '../domain/hub_item_sort.dart';
@@ -34,6 +37,7 @@ class FirestoreHubItemRepository implements HubItemRepository {
   static const _usersCollection = 'users';
   static const _hubItemsCollection = 'hubItems';
   static const _batchLimit = 500;
+  static const _pollInterval = Duration(seconds: 5);
 
   final FirebaseFirestore _firestore;
   final String _userId;
@@ -48,11 +52,22 @@ class FirestoreHubItemRepository implements HubItemRepository {
 
   @override
   Stream<List<HubItem>> watchItems() {
+    if (_usePollingStreams) {
+      return _watchItemsByPolling();
+    }
+
     return _itemsCollection.where('archived', isEqualTo: false).snapshots().map(
       (snapshot) {
         return _sortedItemsFromDocuments(snapshot.docs);
       },
     );
+  }
+
+  Stream<List<HubItem>> _watchItemsByPolling() async* {
+    while (true) {
+      yield await fetchItems();
+      await Future<void>.delayed(_pollInterval);
+    }
   }
 
   @override
@@ -173,5 +188,9 @@ class FirestoreHubItemRepository implements HubItemRepository {
     });
 
     return HubItemSort.sortedByDashboardPriority(items, now: _now());
+  }
+
+  bool get _usePollingStreams {
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
   }
 }

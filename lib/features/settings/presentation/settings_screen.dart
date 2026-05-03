@@ -360,6 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
                           initialValue: _notificationHour,
+                          menuMaxHeight: _dropdownMenuMaxHeight,
                           decoration: const InputDecoration(
                             labelText: 'Daily summary time',
                             prefixIcon: Icon(Icons.schedule_outlined),
@@ -386,6 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const SizedBox(height: 12),
                         DropdownButtonFormField<int>(
                           initialValue: _notificationDueSoonDays,
+                          menuMaxHeight: _dropdownMenuMaxHeight,
                           decoration: const InputDecoration(
                             labelText: 'Due soon window',
                             prefixIcon: Icon(Icons.event_available_outlined),
@@ -520,6 +522,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static String _timeLabel(int hour) {
     return '${hour.toString().padLeft(2, '0')}:00';
   }
+
+  static const _dropdownMenuMaxHeight = 280.0;
 }
 
 class _QuietHoursDropdown extends StatelessWidget {
@@ -539,6 +543,7 @@ class _QuietHoursDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<int>(
       initialValue: value,
+      menuMaxHeight: _SettingsScreenState._dropdownMenuMaxHeight,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: const Icon(Icons.do_not_disturb_on_outlined),

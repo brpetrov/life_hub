@@ -67,6 +67,23 @@ void main() {
     expect(find.text('MOT'), findsNothing);
   });
 
+  testWidgets('opens setup from the populated dashboard', (tester) async {
+    var addReminderCalls = 0;
+
+    await tester.pumpDashboard(
+      repository: _FakeHubItemRepository(Stream.value(_items)),
+      onAddReminders: () {
+        addReminderCalls++;
+      },
+    );
+    await tester.pump();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Add reminders'));
+    await tester.pump();
+
+    expect(addReminderCalls, 1);
+  });
+
   testWidgets('opens the item details sheet', (tester) async {
     await tester.pumpDashboard(
       repository: _FakeHubItemRepository(Stream.value(_items)),
@@ -173,7 +190,10 @@ void main() {
 }
 
 extension on WidgetTester {
-  Future<void> pumpDashboard({required HubItemRepository repository}) {
+  Future<void> pumpDashboard({
+    required HubItemRepository repository,
+    VoidCallback? onAddReminders,
+  }) {
     return pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -181,6 +201,7 @@ extension on WidgetTester {
           repository: repository,
           signedInEmail: 'test@example.com',
           onSignOut: () {},
+          onAddReminders: onAddReminders,
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   AuthService({FirebaseAuth? firebaseAuth})
@@ -6,7 +7,13 @@ class AuthService {
 
   final FirebaseAuth _firebaseAuth;
 
-  Stream<User?> authStateChanges() => _firebaseAuth.authStateChanges();
+  Stream<User?> authStateChanges() {
+    if (_usePollingAuthState) {
+      return _pollAuthState();
+    }
+
+    return _firebaseAuth.authStateChanges();
+  }
 
   User? get currentUser => _firebaseAuth.currentUser;
 
@@ -50,5 +57,26 @@ class AuthService {
     }
 
     await user.delete();
+  }
+
+  Stream<User?> _pollAuthState() async* {
+    User? lastUser;
+    var hasEmitted = false;
+
+    while (true) {
+      final user = _firebaseAuth.currentUser;
+
+      if (!hasEmitted || user?.uid != lastUser?.uid) {
+        yield user;
+        lastUser = user;
+        hasEmitted = true;
+      }
+
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
+  }
+
+  bool get _usePollingAuthState {
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
   }
 }

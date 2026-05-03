@@ -167,6 +167,10 @@ class _HubDashboardState extends State<HubDashboard> {
               child: const Text('Cancel'),
             ),
             FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError,
+              ),
               onPressed: () => Navigator.of(context).pop(true),
               icon: const Icon(Icons.delete_outline),
               label: const Text('Delete'),
@@ -362,6 +366,7 @@ class _HubLoadedState extends StatelessWidget {
             items: items,
             selectedCategory: selectedCategory,
             onCategorySelected: onCategorySelected,
+            onAddReminders: onAddReminders,
           ),
         ),
         if (filteredItems.isEmpty)
@@ -410,11 +415,13 @@ class _HubHeader extends StatelessWidget {
     required this.items,
     required this.selectedCategory,
     required this.onCategorySelected,
+    required this.onAddReminders,
   });
 
   final List<HubItem> items;
   final HubCategory? selectedCategory;
   final ValueChanged<HubCategory?> onCategorySelected;
+  final VoidCallback onAddReminders;
 
   @override
   Widget build(BuildContext context) {
@@ -428,18 +435,36 @@ class _HubHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Reminders',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${items.length} active ${items.length == 1 ? 'item' : 'items'}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Reminders',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${items.length} active ${items.length == 1 ? 'item' : 'items'}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: onAddReminders,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add reminders'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               HubStatusBar(items: items),

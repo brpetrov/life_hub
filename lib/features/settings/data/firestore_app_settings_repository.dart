@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import '../domain/app_settings.dart';
 import 'app_settings_repository.dart';
@@ -29,6 +32,7 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
   static const _usersCollection = 'users';
   static const _settingsCollection = 'settings';
   static const _appDocument = 'app';
+  static const _pollInterval = Duration(seconds: 5);
 
   final FirebaseFirestore _firestore;
   final String _userId;
@@ -43,9 +47,22 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Stream<AppSettings> watchSettings() {
+    if (_usePollingStreams) {
+      return _watchSettingsByPolling();
+    }
+
     return _document.snapshots().map((snapshot) {
       return AppSettings.fromFirestore(snapshot.data());
     });
+  }
+
+  Stream<AppSettings> _watchSettingsByPolling() async* {
+    while (true) {
+      final snapshot = await _document.get();
+
+      yield AppSettings.fromFirestore(snapshot.data());
+      await Future<void>.delayed(_pollInterval);
+    }
   }
 
   @override
@@ -100,4 +117,8 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
 
   @override
   Future<void> deleteSettings() => _document.delete();
+
+  bool get _usePollingStreams {
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+  }
 }
