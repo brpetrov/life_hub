@@ -108,6 +108,9 @@ class _FakeHubItemRepository implements HubItemRepository {
   Stream<List<HubItem>> watchItems() => Stream.value(const []);
 
   @override
+  Future<List<HubItem>> fetchItems() async => createdItems;
+
+  @override
   Future<void> createItem(HubItem item) async {
     createdItems.add(item);
   }
@@ -119,6 +122,11 @@ class _FakeHubItemRepository implements HubItemRepository {
 
   @override
   Future<void> deleteItem(String id) async {}
+
+  @override
+  Future<void> deleteAllItems() async {
+    createdItems.clear();
+  }
 
   @override
   Future<void> markDone(HubItem item) async {}
@@ -137,4 +145,10 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
   Future<void> completeOnboarding() async {
     completeOnboardingCalls++;
   }
+
+  @override
+  Future<void> updateThemeMode(AppThemePreference themeMode) async {}
+
+  @override
+  Future<void> deleteSettings() async {}
 }

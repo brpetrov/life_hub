@@ -3,6 +3,8 @@ import '../domain/hub_item.dart';
 abstract interface class HubItemRepository {
   Stream<List<HubItem>> watchItems();
 
+  Future<List<HubItem>> fetchItems();
+
   Future<void> createItem(HubItem item);
 
   Future<void> createItems(List<HubItem> items);
@@ -12,4 +14,6 @@ abstract interface class HubItemRepository {
   Future<void> markDone(HubItem item);
 
   Future<void> deleteItem(String id);
+
+  Future<void> deleteAllItems();
 }

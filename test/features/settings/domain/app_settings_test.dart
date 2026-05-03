@@ -8,7 +8,7 @@ void main() {
       final settings = AppSettings.fromFirestore(null);
 
       expect(settings.onboardingComplete, isFalse);
-      expect(settings.themeMode, 'system');
+      expect(settings.themeMode, AppThemePreference.system);
       expect(settings.notificationsEnabled, isFalse);
     });
 
@@ -21,9 +21,15 @@ void main() {
       });
 
       expect(settings.onboardingComplete, isTrue);
-      expect(settings.themeMode, 'light');
+      expect(settings.themeMode, AppThemePreference.light);
       expect(settings.notificationsEnabled, isTrue);
       expect(settings.createdAt, DateTime(2026, 5, 2));
+    });
+
+    test('falls back to system theme for unknown stored values', () {
+      final settings = AppSettings.fromFirestore({'themeMode': 'neon'});
+
+      expect(settings.themeMode, AppThemePreference.system);
     });
   });
 }

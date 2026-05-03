@@ -1,18 +1,26 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../auth/auth_service.dart';
 import '../../settings/data/firestore_app_settings_repository.dart';
 import '../../settings/domain/app_settings.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../data/firestore_hub_item_repository.dart';
 import 'hub_dashboard.dart';
 import 'hub_setup_screen.dart';
 
 class HubScreen extends StatelessWidget {
-  const HubScreen({required this.authService, required this.user, super.key});
+  const HubScreen({
+    required this.authService,
+    required this.user,
+    this.onThemeModeChanged,
+    super.key,
+  });
 
   final AuthService authService;
   final User user;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +31,15 @@ class HubScreen extends StatelessWidget {
       itemRepository: itemRepository,
       settingsRepository: settingsRepository,
       signedInEmail: user.email,
+      displayName: user.displayName,
       onSignOut: authService.signOut,
+      onThemeModeChanged: onThemeModeChanged,
+      onDeleteAccount: (password) async {
+        await authService.reauthenticateWithPassword(password);
+        await itemRepository.deleteAllItems();
+        await settingsRepository.deleteSettings();
+        await authService.deleteCurrentUser();
+      },
     );
   }
 }
@@ -33,13 +49,19 @@ class _HubHome extends StatelessWidget {
     required this.itemRepository,
     required this.settingsRepository,
     required this.onSignOut,
+    required this.onDeleteAccount,
+    this.onThemeModeChanged,
     this.signedInEmail,
+    this.displayName,
   });
 
   final FirestoreHubItemRepository itemRepository;
   final FirestoreAppSettingsRepository settingsRepository;
   final VoidCallback onSignOut;
+  final Future<void> Function(String password) onDeleteAccount;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
   final String? signedInEmail;
+  final String? displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -63,35 +85,110 @@ class _HubHome extends StatelessWidget {
         final settings = snapshot.data ?? AppSettings.defaults();
 
         if (!settings.onboardingComplete) {
-          return HubSetupScreen(
-            repository: itemRepository,
-            settingsRepository: settingsRepository,
-            isOnboarding: true,
-            onSignOut: onSignOut,
+          return _ThemeModeSync(
+            themeMode: settings.themeMode.materialThemeMode,
+            onThemeModeChanged: onThemeModeChanged,
+            child: HubSetupScreen(
+              repository: itemRepository,
+              settingsRepository: settingsRepository,
+              isOnboarding: true,
+              onSignOut: onSignOut,
+            ),
           );
         }
 
-        return HubDashboard(
-          repository: itemRepository,
-          signedInEmail: signedInEmail,
-          onSignOut: onSignOut,
-          onAddReminders: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) {
-                  return HubSetupScreen(
-                    repository: itemRepository,
-                    settingsRepository: settingsRepository,
-                    isOnboarding: false,
-                  );
-                },
-              ),
-            );
-          },
+        return _ThemeModeSync(
+          themeMode: settings.themeMode.materialThemeMode,
+          onThemeModeChanged: onThemeModeChanged,
+          child: HubDashboard(
+            repository: itemRepository,
+            signedInEmail: signedInEmail,
+            onSignOut: onSignOut,
+            onOpenSettings: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) {
+                    return SettingsScreen(
+                      settings: settings,
+                      settingsRepository: settingsRepository,
+                      itemRepository: itemRepository,
+                      signedInEmail: signedInEmail,
+                      displayName: displayName,
+                      onDeleteAccount: onDeleteAccount,
+                    );
+                  },
+                ),
+              );
+            },
+            onAddReminders: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) {
+                    return HubSetupScreen(
+                      repository: itemRepository,
+                      settingsRepository: settingsRepository,
+                      isOnboarding: false,
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
+}
+
+class _ThemeModeSync extends StatefulWidget {
+  const _ThemeModeSync({
+    required this.themeMode,
+    required this.child,
+    this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final Widget child;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
+
+  @override
+  State<_ThemeModeSync> createState() => _ThemeModeSyncState();
+}
+
+class _ThemeModeSyncState extends State<_ThemeModeSync> {
+  @override
+  void initState() {
+    super.initState();
+    _syncThemeMode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ThemeModeSync oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.themeMode != widget.themeMode) {
+      _syncThemeMode();
+    }
+  }
+
+  void _syncThemeMode() {
+    final callback = widget.onThemeModeChanged;
+
+    if (callback == null) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      callback(widget.themeMode);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _SettingsErrorScreen extends StatelessWidget {

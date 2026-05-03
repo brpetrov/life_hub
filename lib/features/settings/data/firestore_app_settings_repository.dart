@@ -54,16 +54,27 @@ class FirestoreAppSettingsRepository implements AppSettingsRepository {
       final snapshot = await transaction.get(_document);
       final data = <String, dynamic>{
         'onboardingComplete': true,
-        'themeMode': 'system',
-        'notificationsEnabled': false,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
       if (!snapshot.exists) {
         data['createdAt'] = FieldValue.serverTimestamp();
+        data['themeMode'] = AppThemePreference.system.value;
+        data['notificationsEnabled'] = false;
       }
 
       transaction.set(_document, data, SetOptions(merge: true));
     });
   }
+
+  @override
+  Future<void> updateThemeMode(AppThemePreference themeMode) async {
+    await _document.set({
+      'themeMode': themeMode.value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  @override
+  Future<void> deleteSettings() => _document.delete();
 }

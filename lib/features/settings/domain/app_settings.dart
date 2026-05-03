@@ -1,5 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum AppThemePreference {
+  system('system', 'System'),
+  light('light', 'Light'),
+  dark('dark', 'Dark');
+
+  const AppThemePreference(this.value, this.label);
+
+  final String value;
+  final String label;
+
+  static AppThemePreference fromValue(Object? value) {
+    return switch (value?.toString().trim().toLowerCase()) {
+      'light' => AppThemePreference.light,
+      'dark' => AppThemePreference.dark,
+      _ => AppThemePreference.system,
+    };
+  }
+}
+
 class AppSettings {
   const AppSettings({
     required this.onboardingComplete,
@@ -12,7 +31,7 @@ class AppSettings {
   factory AppSettings.defaults() {
     return const AppSettings(
       onboardingComplete: false,
-      themeMode: 'system',
+      themeMode: AppThemePreference.system,
       notificationsEnabled: false,
     );
   }
@@ -24,7 +43,7 @@ class AppSettings {
 
     return AppSettings(
       onboardingComplete: data['onboardingComplete'] == true,
-      themeMode: data['themeMode']?.toString() ?? 'system',
+      themeMode: AppThemePreference.fromValue(data['themeMode']),
       notificationsEnabled: data['notificationsEnabled'] == true,
       createdAt: _dateFromFirestore(data['createdAt']),
       updatedAt: _dateFromFirestore(data['updatedAt']),
@@ -32,7 +51,7 @@ class AppSettings {
   }
 
   final bool onboardingComplete;
-  final String themeMode;
+  final AppThemePreference themeMode;
   final bool notificationsEnabled;
   final DateTime? createdAt;
   final DateTime? updatedAt;

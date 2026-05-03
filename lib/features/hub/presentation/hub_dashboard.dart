@@ -15,6 +15,7 @@ class HubDashboard extends StatefulWidget {
     required this.repository,
     required this.onSignOut,
     this.signedInEmail,
+    this.onOpenSettings,
     this.onAddReminders,
     super.key,
   });
@@ -22,6 +23,7 @@ class HubDashboard extends StatefulWidget {
   final HubItemRepository repository;
   final VoidCallback onSignOut;
   final String? signedInEmail;
+  final VoidCallback? onOpenSettings;
   final VoidCallback? onAddReminders;
 
   @override
@@ -200,6 +202,12 @@ class _HubDashboardState extends State<HubDashboard> {
       appBar: AppBar(
         title: const Text('Life Hub'),
         actions: [
+          if (widget.onOpenSettings != null)
+            IconButton(
+              tooltip: 'Settings',
+              onPressed: widget.onOpenSettings,
+              icon: const Icon(Icons.settings_outlined),
+            ),
           IconButton(
             tooltip: 'Sign out',
             onPressed: widget.onSignOut,

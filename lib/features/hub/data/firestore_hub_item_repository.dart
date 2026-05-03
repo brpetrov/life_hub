@@ -50,13 +50,18 @@ class FirestoreHubItemRepository implements HubItemRepository {
   Stream<List<HubItem>> watchItems() {
     return _itemsCollection.where('archived', isEqualTo: false).snapshots().map(
       (snapshot) {
-        final items = snapshot.docs.map((document) {
-          return HubItem.fromFirestore(document.id, document.data());
-        });
-
-        return HubItemSort.sortedByDashboardPriority(items, now: _now());
+        return _sortedItemsFromDocuments(snapshot.docs);
       },
     );
+  }
+
+  @override
+  Future<List<HubItem>> fetchItems() async {
+    final snapshot = await _itemsCollection
+        .where('archived', isEqualTo: false)
+        .get();
+
+    return _sortedItemsFromDocuments(snapshot.docs);
   }
 
   @override
@@ -112,6 +117,25 @@ class FirestoreHubItemRepository implements HubItemRepository {
     ).update({'archived': true, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
+  @override
+  Future<void> deleteAllItems() async {
+    while (true) {
+      final snapshot = await _itemsCollection.limit(_batchLimit).get();
+
+      if (snapshot.docs.isEmpty) {
+        return;
+      }
+
+      final batch = _firestore.batch();
+
+      for (final document in snapshot.docs) {
+        batch.delete(document.reference);
+      }
+
+      await batch.commit();
+    }
+  }
+
   Map<String, dynamic> _createData(HubItem item) {
     return item.toFirestore()
       ..['archived'] = false
@@ -139,5 +163,15 @@ class FirestoreHubItemRepository implements HubItemRepository {
 
   Timestamp? _timestampFromDate(DateTime? value) {
     return value == null ? null : Timestamp.fromDate(value);
+  }
+
+  List<HubItem> _sortedItemsFromDocuments(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> documents,
+  ) {
+    final items = documents.map((document) {
+      return HubItem.fromFirestore(document.id, document.data());
+    });
+
+    return HubItemSort.sortedByDashboardPriority(items, now: _now());
   }
 }

@@ -6,10 +6,11 @@ import 'auth_service.dart';
 import 'login_screen.dart';
 
 class AuthGate extends StatelessWidget {
-  AuthGate({AuthService? authService, super.key})
+  AuthGate({AuthService? authService, this.onThemeModeChanged, super.key})
     : _authService = authService ?? AuthService();
 
   final AuthService _authService;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +31,11 @@ class AuthGate extends StatelessWidget {
           return LoginScreen(authService: _authService);
         }
 
-        return HubScreen(authService: _authService, user: user);
+        return HubScreen(
+          authService: _authService,
+          user: user,
+          onThemeModeChanged: onThemeModeChanged,
+        );
       },
     );
   }

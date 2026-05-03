@@ -181,6 +181,9 @@ class _FakeHubItemRepository implements HubItemRepository {
   Stream<List<HubItem>> watchItems() => _items;
 
   @override
+  Future<List<HubItem>> fetchItems() async => _items.first;
+
+  @override
   Future<void> createItem(HubItem item) => throw UnimplementedError();
 
   @override
@@ -190,6 +193,9 @@ class _FakeHubItemRepository implements HubItemRepository {
   Future<void> deleteItem(String id) async {
     deletedIds.add(id);
   }
+
+  @override
+  Future<void> deleteAllItems() async {}
 
   @override
   Future<void> markDone(HubItem item) async {

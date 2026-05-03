@@ -6,10 +6,27 @@ import 'firebase_startup_state.dart';
 
 export 'firebase_startup_state.dart';
 
-class LifeHubApp extends StatelessWidget {
+class LifeHubApp extends StatefulWidget {
   const LifeHubApp({required this.firebaseState, super.key});
 
   final FirebaseStartupState firebaseState;
+
+  @override
+  State<LifeHubApp> createState() => _LifeHubAppState();
+}
+
+class _LifeHubAppState extends State<LifeHubApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  void _setThemeMode(ThemeMode themeMode) {
+    if (_themeMode == themeMode) {
+      return;
+    }
+
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +34,17 @@ class LifeHubApp extends StatelessWidget {
       title: 'Life Hub',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      themeMode: ThemeMode.light,
-      home: _homeForState(firebaseState),
+      darkTheme: AppTheme.dark,
+      themeMode: _themeMode,
+      home: _homeForState(widget.firebaseState),
     );
   }
 
   Widget _homeForState(FirebaseStartupState state) {
     return switch (state.status) {
-      FirebaseStartupStatus.ready => AuthGate(),
+      FirebaseStartupStatus.ready => AuthGate(
+        onThemeModeChanged: _setThemeMode,
+      ),
       FirebaseStartupStatus.notConfigured => FirebaseSetupScreen(
         title: 'Firebase setup needed',
         message: state.message,
